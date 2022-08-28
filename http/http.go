@@ -3,8 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -58,17 +56,10 @@ func (E *Error) Error() string {
 	return fmt.Sprintf("[HTTP] [ERROR] %d %s", E.StatusCode, E.Status)
 }
 
-var ca *x509.CertPool
 var client *xhttp.Client
 
 func init() {
-	ca = x509.NewCertPool()
-	ca.AppendCertsFromPEM(pemCerts)
 	client = NewClient()
-}
-
-func CA() *x509.CertPool {
-	return ca
 }
 
 func GetClient() *xhttp.Client {
@@ -77,7 +68,6 @@ func GetClient() *xhttp.Client {
 
 func NewClient() *xhttp.Client {
 	trans := xhttp.Transport{
-		TLSClientConfig:     &tls.Config{RootCAs: ca},
 		DisableKeepAlives:   false,
 		IdleConnTimeout:     6 * time.Second,
 		MaxIdleConnsPerHost: 2000,
