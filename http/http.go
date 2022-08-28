@@ -11,6 +11,7 @@ import (
 	"log"
 	"mime/multipart"
 	xhttp "net/http"
+	"net/url"
 	xurl "net/url"
 	"strings"
 	"time"
@@ -80,6 +81,22 @@ func NewClient() *xhttp.Client {
 		DisableKeepAlives:   false,
 		IdleConnTimeout:     6 * time.Second,
 		MaxIdleConnsPerHost: 2000,
+	}
+	http2.ConfigureTransport(&trans)
+	return &xhttp.Client{
+		Transport: &trans,
+	}
+}
+
+func NewClientWithProxy(proxy *url.URL) *xhttp.Client {
+	trans := xhttp.Transport{
+		TLSClientConfig:     &tls.Config{RootCAs: ca},
+		DisableKeepAlives:   false,
+		IdleConnTimeout:     6 * time.Second,
+		MaxIdleConnsPerHost: 2000,
+		Proxy: func(r *xhttp.Request) (*url.URL, error) {
+			return proxy, nil
+		},
 	}
 	http2.ConfigureTransport(&trans)
 	return &xhttp.Client{
