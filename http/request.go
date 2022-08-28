@@ -35,6 +35,7 @@ type HTTPRequest interface {
 	SetOutput(out io.Writer) HTTPRequest
 	Send() (HTTPResponse, error)
 	SendWithClient(client *xhttp.Client) (HTTPResponse, error)
+	SetClient(client *xhttp.Client) HTTPRequest
 }
 
 func NewHTTPRequest(method string) HTTPRequest {
@@ -48,6 +49,7 @@ type httpRequest struct {
 	timeout time.Duration
 	body    []byte
 	output  io.Writer
+	client  *xhttp.Client
 }
 
 func (r *httpRequest) SetURL(baseURL string, query map[string]string) HTTPRequest {
@@ -153,7 +155,15 @@ func (r *httpRequest) SetOutput(out io.Writer) HTTPRequest {
 }
 
 func (r *httpRequest) Send() (HTTPResponse, error) {
+	if r.client != nil {
+		return r.SendWithClient(r.client)
+	}
 	return r.SendWithClient(GetClient())
+}
+
+func (r *httpRequest) SetClient(client *xhttp.Client) HTTPRequest {
+	r.client = client
+	return r
 }
 
 func (r *httpRequest) SendWithClient(client *xhttp.Client) (HTTPResponse, error) {
