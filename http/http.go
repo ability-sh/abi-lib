@@ -90,7 +90,6 @@ func NewClient() *xhttp.Client {
 
 func NewClientWithProxy(proxy *url.URL) *xhttp.Client {
 	trans := xhttp.Transport{
-		TLSClientConfig:     &tls.Config{RootCAs: ca},
 		DisableKeepAlives:   false,
 		IdleConnTimeout:     6 * time.Second,
 		MaxIdleConnsPerHost: 2000,
