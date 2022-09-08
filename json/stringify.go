@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/ability-sh/abi-lib/dynamic"
 )
 
-func encodeObject(v reflect.Value, w *bytes.Buffer, idx int) (int, error) {
+func stringifyObject(v reflect.Value, w *bytes.Buffer, idx int) (int, error) {
 
 	var err error = nil
 	ftype := v.Type()
@@ -36,7 +37,7 @@ func encodeObject(v reflect.Value, w *bytes.Buffer, idx int) (int, error) {
 					w.WriteString(",")
 				}
 
-				err = encode(tags[0], w)
+				err = stringify(tags[0], w)
 
 				if err != nil {
 					return idx, err
@@ -44,7 +45,7 @@ func encodeObject(v reflect.Value, w *bytes.Buffer, idx int) (int, error) {
 
 				w.WriteString(":")
 
-				err = encode(fv.Interface(), w)
+				err = stringify(fv.Interface(), w)
 
 				if err != nil {
 					return idx, err
@@ -53,7 +54,7 @@ func encodeObject(v reflect.Value, w *bytes.Buffer, idx int) (int, error) {
 			}
 
 		} else if fv.Kind() == reflect.Struct {
-			idx, err = encodeObject(fv, w, idx)
+			idx, err = stringifyObject(fv, w, idx)
 			if err != nil {
 				return idx, err
 			}
@@ -64,7 +65,28 @@ func encodeObject(v reflect.Value, w *bytes.Buffer, idx int) (int, error) {
 	return idx, nil
 }
 
-func encode(object interface{}, w *bytes.Buffer) error {
+type mapItem struct {
+	key   string
+	value reflect.Value
+}
+
+type mapItemList []*mapItem
+
+func (m mapItemList) Len() int {
+	return len(m)
+}
+
+func (m mapItemList) Less(i, j int) bool {
+	return strings.Compare(m[i].key, m[j].key) < 0
+}
+
+func (m mapItemList) Swap(i, j int) {
+	t := m[i]
+	m[i] = m[j]
+	m[j] = t
+}
+
+func stringify(object interface{}, w *bytes.Buffer) error {
 
 	if object == nil {
 		w.WriteString("null")
@@ -83,24 +105,29 @@ func encode(object interface{}, w *bytes.Buffer) error {
 
 	switch v.Kind() {
 	case reflect.Map:
-		i := 0
 		w.WriteString("{")
+		var items mapItemList
 		for _, key := range v.MapKeys() {
 			vv := v.MapIndex(key)
 			if key.CanInterface() && vv.CanInterface() {
+				items = append(items, &mapItem{key: dynamic.StringValue(key.Interface(), ""), value: vv})
+			}
+		}
+		if len(items) > 0 {
+			sort.Sort(items)
+			for i, item := range items {
 				if i != 0 {
 					w.WriteString(",")
 				}
-				err := encode(dynamic.StringValue(key.Interface(), ""), w)
+				err := stringify(item.key, w)
 				if err != nil {
 					return err
 				}
 				w.WriteString(":")
-				err = encode(vv.Interface(), w)
+				err = stringify(item.value.Interface(), w)
 				if err != nil {
 					return err
 				}
-				i = i + 1
 			}
 		}
 		w.WriteString("}")
@@ -112,7 +139,7 @@ func encode(object interface{}, w *bytes.Buffer) error {
 				if i != 0 {
 					w.WriteString(",")
 				}
-				err := encode(vv.Interface(), w)
+				err := stringify(vv.Interface(), w)
 				if err != nil {
 					return err
 				}
@@ -121,7 +148,7 @@ func encode(object interface{}, w *bytes.Buffer) error {
 		w.WriteString("]")
 	case reflect.Struct:
 		w.WriteString("{")
-		_, err := encodeObject(v, w, 0)
+		_, err := stringifyObject(v, w, 0)
 		if err != nil {
 			return err
 		}
@@ -173,36 +200,15 @@ func encode(object interface{}, w *bytes.Buffer) error {
 	return nil
 }
 
-func Marshal(object interface{}) ([]byte, error) {
+func Stringify(object interface{}) (string, error) {
 
 	w := bytes.NewBuffer(nil)
 
-	err := encode(object, w)
+	err := stringify(object, w)
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return w.Bytes(), nil
-}
-
-func MarshalIndent(object interface{}, prefix, indent string) ([]byte, error) {
-
-	w := bytes.NewBuffer(nil)
-
-	err := encode(object, w)
-
-	if err != nil {
-		return nil, err
-	}
-
-	dst := bytes.NewBuffer(nil)
-
-	err = json.Indent(dst, w.Bytes(), prefix, indent)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return dst.Bytes(), nil
+	return w.String(), nil
 }
