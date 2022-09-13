@@ -795,6 +795,9 @@ func SetReflectValue(v reflect.Value, value interface{}) {
 			SetReflectValue(v.Elem(), value)
 		}
 	case reflect.Map:
+		if v.IsNil() {
+			v.Set(reflect.MakeMap(v.Type()))
+		}
 		Each(value, func(key interface{}, value interface{}) bool {
 			var kval reflect.Value
 			var vval reflect.Value
@@ -825,6 +828,11 @@ func SetReflectValue(v reflect.Value, value interface{}) {
 				vval = reflect.ValueOf(BooleanValue(value, false))
 			case reflect.ValueOf(value).Kind():
 				vval = reflect.ValueOf(value)
+			case reflect.Ptr:
+				if v.Type().Elem().Elem().Kind() == reflect.Struct {
+					vval = reflect.New(v.Type().Elem().Elem())
+					SetReflectValue(vval, value)
+				}
 			}
 			if kval.IsValid() {
 				v.SetMapIndex(kval, vval)
