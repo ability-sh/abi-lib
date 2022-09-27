@@ -850,11 +850,40 @@ func SetReflectValue(v reflect.Value, value interface{}) {
 
 			Each(value, func(key interface{}, value interface{}) bool {
 
-				item := reflect.New(v.Type().Elem())
-
-				SetReflectValue(item, value)
-
-				vv = reflect.Append(vv, item.Elem())
+				switch v.Type().Elem().Kind() {
+				case reflect.Bool:
+					vv = reflect.Append(vv, reflect.ValueOf(BooleanValue(value, false)))
+				case reflect.Int:
+					vv = reflect.Append(vv, reflect.ValueOf(int(IntValue(value, 0))))
+				case reflect.Int8:
+					vv = reflect.Append(vv, reflect.ValueOf(int8(IntValue(value, 0))))
+				case reflect.Int16:
+					vv = reflect.Append(vv, reflect.ValueOf(int16(IntValue(value, 0))))
+				case reflect.Int32:
+					vv = reflect.Append(vv, reflect.ValueOf(int32(IntValue(value, 0))))
+				case reflect.Int64:
+					vv = reflect.Append(vv, reflect.ValueOf(IntValue(value, 0)))
+				case reflect.Uint:
+					vv = reflect.Append(vv, reflect.ValueOf(uint(UintValue(value, 0))))
+				case reflect.Uint8:
+					vv = reflect.Append(vv, reflect.ValueOf(uint8(UintValue(value, 0))))
+				case reflect.Uint16:
+					vv = reflect.Append(vv, reflect.ValueOf(uint16(UintValue(value, 0))))
+				case reflect.Uint32:
+					vv = reflect.Append(vv, reflect.ValueOf(uint32(UintValue(value, 0))))
+				case reflect.Uint64:
+					vv = reflect.Append(vv, reflect.ValueOf(UintValue(value, 0)))
+				case reflect.Float32:
+					vv = reflect.Append(vv, reflect.ValueOf(float32(FloatValue(value, 0))))
+				case reflect.Float64:
+					vv = reflect.Append(vv, reflect.ValueOf(FloatValue(value, 0)))
+				case reflect.String:
+					vv = reflect.Append(vv, reflect.ValueOf(StringValue(value, "")))
+				default:
+					item := reflect.New(v.Type().Elem())
+					SetReflectValue(item, value)
+					vv = reflect.Append(vv, item.Elem())
+				}
 
 				return true
 			})
