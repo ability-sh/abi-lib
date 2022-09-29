@@ -5,7 +5,7 @@ import (
 	"regexp"
 )
 
-var e, _ = regexp.Compile(`\$\{.*\}`)
+var e, _ = regexp.Compile(`\$\{.*?\}`)
 
 func ParseEval(eval string, getValue func(key string) string) string {
 
