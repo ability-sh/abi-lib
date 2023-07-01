@@ -206,6 +206,8 @@ func (r *httpRequest) SendWithClient(client *xhttp.Client) (HTTPResponse, error)
 
 		body, err = ioutil.ReadAll(resp.Body)
 
+		resp.Body.Close()
+
 		if err != nil && err != io.EOF {
 			return nil, err
 		}

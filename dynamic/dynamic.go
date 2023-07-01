@@ -679,6 +679,48 @@ func BooleanValue(value interface{}, defaultValue bool) bool {
 
 }
 
+func EachReflectWithTag(v reflect.Value, fn func(name string, value reflect.Value) bool, getTag func(fd reflect.StructField) string) {
+	if v.Kind() == reflect.Struct {
+
+		count := v.NumField()
+		tp := v.Type()
+
+		for i := 0; i < count; i++ {
+
+			tf := tp.Field(i)
+			fd := v.Field(i)
+
+			name := getTag(tf)
+
+			if name == "" {
+				name = tf.Tag.Get("json")
+			}
+
+			if name == "-" {
+				continue
+			}
+
+			if tf.Type.Kind() == reflect.Struct {
+				EachReflectWithTag(fd, fn, getTag)
+				continue
+			}
+
+			if name == "" {
+				continue
+			}
+
+			name = strings.Split(name, ",")[0]
+
+			if !fn(name, fd) {
+				break
+			}
+
+		}
+	} else if v.Kind() == reflect.Ptr {
+		EachReflectWithTag(v.Elem(), fn, getTag)
+	}
+}
+
 func EachReflect(v reflect.Value, fn func(name string, value reflect.Value) bool) {
 
 	if v.Kind() == reflect.Struct {
